@@ -6,6 +6,7 @@ import math
 import jieba
 import csv
 import numpy as np
+from sklearn.utils.class_weight import compute_class_weight
 from sklearn.feature_extraction.text import TfidfVectorizer
 from keras.api.models import Sequential
 from keras.api.layers import Dense, Dropout
@@ -13,10 +14,12 @@ from keras.api.optimizers import Adam
 from keras.api.callbacks import EarlyStopping
 from keras.api.models import load_model
 
-from tensorflow.python.keras.saving.save import load_model
+# from tensorflow.python.keras.saving.save import load_model
 
-max_features=400
+max_features=1000
 train_test_ratio=0.8
+zero_rate=0.8
+one_rate=1.4
 def getData():
     falsenews = {
         'title': [],
@@ -126,7 +129,7 @@ def DNN(x_train,y_train,x_test,y_test):
     model = Sequential()
 
     # 输入层：假设 X 的每个样本有 1000 个特征
-    model.add(Dense(512, input_dim=max_features, activation='relu'))  # 第一个隐藏层（512个神经元）
+    model.add(Dense(512, input_shape=(max_features,), activation='relu'))  # 第一个隐藏层（512个神经元）
     model.add(Dropout(0.5))  # Dropout层，避免过拟合
 
     model.add(Dense(256, activation='relu'))  # 第二个隐藏层（256个神经元）
@@ -141,7 +144,7 @@ def DNN(x_train,y_train,x_test,y_test):
     model.compile(optimizer=Adam(), loss='binary_crossentropy', metrics=['accuracy'])
 
     # 打印模型架构
-    model.summary()
+    # model.summary()
 
     # 训练模型
     early_stopping = EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True)  # 设置早停
@@ -150,21 +153,29 @@ def DNN(x_train,y_train,x_test,y_test):
     # print(x_train.dtype)  # 检查 x_train 的数据类型
     # print(y_train.dtype)  # 检查 y_train 的数据类型
     # print(y_train)
+    # 假设 y_train 是标签
+    class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y_train), y=y_train)
     history = model.fit(x_train, y_train,
+                        shuffle=True,
                         epochs=20,  # 可以根据需要调整
                         batch_size=32,  # 可以根据需要调整
                         validation_data=(x_test, y_test),  # 验证集
+                        class_weight={0:class_weights[0]*zero_rate,1:class_weights[1]*one_rate},
                         callbacks=[early_stopping])  # 使用早停法
 
     # 评估模型
     loss, accuracy = model.evaluate(x_test, y_test)
     print(f"Test Loss: {loss:.4f}")
     print(f"Test Accuracy: {accuracy * 100:.2f}%")
-    # model.save('my_model.h5')
-    predictions = model.predict(x_test)
-    print(np.count_nonzero(predictions>0.28505)/len(predictions))
+    predictions = model.predict(x_test[2609:2896])
+    print(predictions)
+    print(np.count_nonzero(predictions > 0.5) / len(predictions))
+    with open("results.txt", 'a') as file:
+        file.write(f"zero rate:{zero_rate}; "+f"one rate:{one_rate}; "+f"loss:{loss}; "+f"accuracy:{accuracy}; "+f"predict:{np.count_nonzero(predictions > 0.5) / len(predictions)}\n")
+    model.save('my_model.h5')
+
 if __name__ == '__main__':
-    getData()
+    # getData()
     x_train=toVector(divideWords('./data/train_data.csv'))
     # count=0
     # for row in x_train:
@@ -181,9 +192,13 @@ if __name__ == '__main__':
     y_test=np.array(y_test)
     # x_train=toVector(x_train)
     # x_test=toVector(y_test)
+    # for i in np.arange(2.0,4.0,0.1):
+    #     zero_rate=i
+    #     one_rate=0.8
+    #     DNN(x_train, y_train, x_test, y_test)
     DNN(x_train, y_train, x_test, y_test)
-    # model=load_model()
-    # predictions=model.predict(x_test)
+    model=load_model('my_model.h5')
+    predictions=model.predict(x_test)
     # print(np.count_nonzero(predictions > 0.28505) / len(predictions))
     # for item in vector:
     #     print(str(len(item))+' ')
