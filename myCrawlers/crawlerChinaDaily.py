@@ -4,6 +4,7 @@ import re
 import time
 import urllib.request,urllib.error
 
+import mysql.connector
 from bs4 import BeautifulSoup
 
 totalpage=40
@@ -24,6 +25,21 @@ def saveData(urls,texts):
         # 写入数据
         for url, text in zip(urls, texts):
             writer.writerow([url, text])  # 将每一对 title 和 label 写入一行
+
+def saveData2DB(urls,texts):
+    conn=mysql.connector.connect(
+        host="123.57.251.203",
+        user='hanyou',
+        password='Chenyu&20021122',
+        database='news'
+    )
+    cursor = conn.cursor()
+    for url,title in zip(urls,texts):
+        cursor.execute('insert into news (title,url) values (%s,%s)',(title,url))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
 
 def sleep(int):
     time.sleep(int)
@@ -66,18 +82,20 @@ def getData(baseurl):
             URL,text = pattern.findall(item)[0]
             if text[0]!='<':
                 # print(result)
-                print([URL, text])
+                # print([URL, text])
                 urls.append('http:' + URL)
                 texts.append(text)
 
         sleep(3)
     return urls,texts
+
 def main():
     delete_file()
     baseurl="http://cnews.chinadaily.com.cn/5bda64b0a3101a87ca904f12/"
     # 1.爬取网页
     [urls,texts] = getData(baseurl)
-    saveData(urls,texts)
+    # print(len(urls))
+    saveData2DB(urls,texts)
 
 
 if __name__=='__main__':

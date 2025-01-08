@@ -1,13 +1,11 @@
-import mysql.connector
 from selenium import webdriver
 import csv
 import os
-import re
 import time
 import urllib.request,urllib.error
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
-
+import mysql.connector
 totalpage=45
 
 
@@ -71,9 +69,8 @@ def main(driver):
     baseurl="https://news.sina.com.cn/roll/#pageid=153&lid=2509&k=&num=50&"
     # # 1.爬取网页
     [urls,texts] = getData(baseurl,driver)
-    saveData2DB(urls,texts)
+    saveData(urls,texts)
 
 
 if __name__=='__main__':
-    web_driver=webdriver.Edge()
-    main(web_driver)
+    saveData2DB(["http://china.chinadaily.com.cn/a/202212/05/WS638dadeda3102ada8b225431.html"],["你好啊"])
