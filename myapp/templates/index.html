@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>搜索新闻</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>新闻搜索引擎</h1>
+        <form action="/search" method="post">
+            <input type="text" name="query" placeholder="输入搜索内容..." required>
+            <button type="submit">搜索</button>
+        </form>
+    </div>
+</body>
+</html>
