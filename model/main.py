@@ -13,13 +13,14 @@ from keras.api.layers import Dense, Dropout
 from keras.api.optimizers import Adam
 from keras.api.callbacks import EarlyStopping
 from keras.api.models import load_model
+import joblib
 
 # from tensorflow.python.keras.saving.save import load_model
 
 max_features=1000
 train_test_ratio=0.8
-zero_rate=0.8
-one_rate=1.4
+zero_rate=1.4
+one_rate=0.8
 def getData():
     falsenews = {
         'title': [],
@@ -101,6 +102,8 @@ def divideWords(dataset_name):
         ans.append(" ".join(filtered_words))  # 输出去除停用词后的分词结果
     return ans
 
+
+
 #得到标签
 def getlabel(dataset_name):
     labels=[]
@@ -117,12 +120,17 @@ def getlabel(dataset_name):
     return labels
 
 # 使用 TfidfVectorizer 进行向量化
-def toVector(wordvectorlist):
-    # print(wordvectorlist[0])
+def toVector_train(wordvectorlist):
     vectorizer = TfidfVectorizer(max_features=max_features)
     x_tfidf = vectorizer.fit_transform(wordvectorlist).toarray()
+    joblib.dump(vectorizer, 'vectorizer.pkl')  # 保存vectorizer
     return x_tfidf
 
+def toVector_test(wordvectorlist):
+    print(wordvectorlist[0:5])
+    vectorizer = joblib.load('vectorizer.pkl')  # 加载已保存的vectorizer
+    x_tfidf = vectorizer.transform(wordvectorlist).toarray()  # 只转换
+    return x_tfidf
 
 def DNN(x_train,y_train,x_test,y_test):
     # 创建神经网络模型
@@ -167,7 +175,7 @@ def DNN(x_train,y_train,x_test,y_test):
     loss, accuracy = model.evaluate(x_test, y_test)
     print(f"Test Loss: {loss:.4f}")
     print(f"Test Accuracy: {accuracy * 100:.2f}%")
-    predictions = model.predict(x_test[2609:2896])
+    predictions = model.predict(x_test[2810:2821])
     print(predictions)
     print(np.count_nonzero(predictions > 0.5) / len(predictions))
     with open("results.txt", 'a') as file:
@@ -176,7 +184,8 @@ def DNN(x_train,y_train,x_test,y_test):
 
 if __name__ == '__main__':
     # getData()
-    x_train=toVector(divideWords('./data/train_data.csv'))
+
+    x_train=toVector_train(divideWords('./data/train_data.csv'))
     # count=0
     # for row in x_train:
     #     for num in row:
@@ -184,7 +193,7 @@ if __name__ == '__main__':
     #             count+=1
     # print(count)
     y_train=getlabel('./data/train_data.csv')
-    x_test=toVector(divideWords('./data/test_data.csv'))
+    x_test=toVector_test(divideWords('./data/test_data.csv'))
     y_test=getlabel('./data/test_data.csv')
     x_train=np.array(x_train)
     y_train=np.array(y_train)
@@ -196,7 +205,7 @@ if __name__ == '__main__':
     #     zero_rate=i
     #     one_rate=0.8
     #     DNN(x_train, y_train, x_test, y_test)
-    DNN(x_train, y_train, x_test, y_test)
+    #DNN(x_train, y_train, x_test, y_test)
     # model=load_model('my_model.h5')
     # predictions=model.predict(x_test)
     # print(np.count_nonzero(predictions > 0.28505) / len(predictions))
