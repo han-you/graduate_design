@@ -1,15 +1,46 @@
+import csv
 import math
 import operator
 import jieba
+import joblib
+import numpy
+from keras.api.models import load_model
+
 from myapp.indexer import Indexer
+from sklearn.feature_extraction.text import TfidfVectorizer
+
 
 class Search:
-    def __init__(self,k1=1.5,b=0.5):
 
+    def __init__(self,k1=1.5,b=0.5,coefficient=0.5):
+
+        self.coefficient=coefficient
+        self.model=load_model('my_model.h5')
         self.index=Indexer()
         self.k1 = k1
         self.b = b
         self.avgdl = self.avg_doc_length()  # 计算平均文档长度
+        self.loaded_vectorizer=joblib.load('vectorizer.pkl')
+    # 假设停用词表保存在 stopwords.txt 中
+    def remove_stopwords(self,words):
+        with open('stop_words.txt', 'r', encoding='utf-8') as f:
+            stopwords = set(f.read().splitlines())
+        return [word for word in words if word not in stopwords]
+
+    # 进行分词
+    def divideWords(self,title):
+        ans=[]
+        words = jieba.cut(title)
+        print(words)
+        filtered_words = self.remove_stopwords(words)
+        ans.append(" ".join(filtered_words))  # 输出去除停用词后的分词结果
+        return ans
+
+    # 使用 TfidfVectorizer 进行向量化
+    def toVector_test(self,wordvectorlist):
+        print(wordvectorlist)
+        x_tfidf = self.loaded_vectorizer.transform(wordvectorlist).toarray()  # 只转换
+        return x_tfidf
 
     def search(self,query):  #TF-IDF
         term_list=[]
@@ -53,11 +84,43 @@ class Search:
     def search2(self,query):  #BM25
         queries = query.split()
         BM25={}
+
         for doc in self.index.doc_list:
             BM25[doc['title']]=self.compute_bm25_score(queries,doc)
+
+        tmp= {title: score for title, score in BM25.items() if score != 0}
+        BM25=tmp
+        scores = list(BM25.values())
+        min_score = min(scores)
+        max_score = max(scores)
+        if max_score > min_score:  # 避免除以零
+            for title in BM25:
+                score=self.model.predict(numpy.array(self.toVector_test(self.divideWords(title))))
+                # print(score[0][0])
+                BM25[title] = score[0][0]*self.coefficient+(1-self.coefficient)*(BM25[title] - min_score) / (max_score - min_score)
+        else:
+            for title in BM25:  # 所有分数相同的情况，直接设为 1
+                BM25[title] = 1.0
         sorted_doc = sorted(BM25.items(), key=operator.itemgetter(1), reverse=True)
+
         res=[self.index.id_doc[doc_id] for doc_id,score in sorted_doc if score!=0]
         # for item in res:
         #     print(BM25[item['title']])
         print('search finish')
         return res
+
+
+
+
+
+        # scores = list(BM25.values())
+        # min_score = min(scores)
+        # max_score = max(scores)
+        # if max_score > min_score:  # 避免除以零
+        #     for title in BM25:
+        #         score=self.model.predict(numpy.array(self.toVector_test(self.divideWords(title))))
+        #         print(score)
+        #         BM25[title] = (BM25[title] - min_score) / (max_score - min_score)
+        # else:
+        #     for title in BM25:  # 所有分数相同的情况，直接设为 1
+        #         BM25[title] = 1.0
