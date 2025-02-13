@@ -38,19 +38,46 @@ def getData():
         'title': [],
         'label': []
     }
-    #获取所有的新闻标题和标签，并将标签转为0和1，还要实现去除没有新闻标题的选项
+
+    # conn = pymysql.connect(
+    #     host="123.57.251.203",
+    #     user='hanyou',
+    #     password='Chenyu&20021122',
+    #     database='news',
+    #     port=3306
+    # )
+    # cursor = conn.cursor()
+    # sql = 'select * from news'
+    # cursor.execute(sql)
+    # data = cursor.fetchall()
+    # cursor.close()
+    # conn.close()
+    #
+    # with open('data/news.csv', mode='a', newline='', encoding='utf-8') as file:
+    #     writer = csv.writer(file)
+    #     for row in data:
+    #         writer.writerow(['','','','','事实','',row[0]])
+    #
+    # for row in data:
+    #     truenews['title'].append(row[0])
+    #     truenews['label'].append('事实')
+
+    # 获取所有的新闻标题和标签，并将标签转为0和1，还要实现去除没有新闻标题的选项
     with open('data/news.csv', newline='', encoding='utf-8') as csvfile:
         reader = csv.reader(csvfile)
-        list=[]
+        list = []
         for row in reader:
             list.append(row)
-        for i in range(1,len(list)):
-            if list[i][6]!='' and list[i][4]=='谣言':
+        # print(len(list))
+        for i in range(1, len(list)):
+            if list[i][6] != '' and list[i][4] == '谣言':
                 falsenews['title'].append(list[i][6])
                 falsenews['label'].append(0)
-            elif list[i][6]!='' and list[i][4]=='事实':
+            elif list[i][6] != '' and list[i][4] == '事实':
                 truenews['title'].append(list[i][6])
                 truenews['label'].append(1)
+    # print(len(falsenews['title']))
+    # print(len(truenews['title']))
     # print(len(falsenews['title']))
     # print(len(truenews['title']))
     #将数据划分为训练集和测试集，分别写入test_data.csv和train_data.csv文件中，划分比例为全局变量train_test_ratio
@@ -123,12 +150,12 @@ def getlabel(dataset_name):
 def toVector_train(wordvectorlist):
     vectorizer = TfidfVectorizer(max_features=max_features)
     x_tfidf = vectorizer.fit_transform(wordvectorlist).toarray()
-    joblib.dump(vectorizer, 'vectorizer.pkl')  # 保存vectorizer
+    joblib.dump(vectorizer, '../myapp/vectorizer.pkl')  # 保存vectorizer
     return x_tfidf
 
 def toVector_test(wordvectorlist):
-    print(wordvectorlist[0:5])
-    vectorizer = joblib.load('vectorizer.pkl')  # 加载已保存的vectorizer
+    # print(wordvectorlist[0:5])
+    vectorizer = joblib.load('../myapp/vectorizer.pkl')  # 加载已保存的vectorizer
     x_tfidf = vectorizer.transform(wordvectorlist).toarray()  # 只转换
     return x_tfidf
 
@@ -175,11 +202,11 @@ def DNN(x_train,y_train,x_test,y_test):
     loss, accuracy = model.evaluate(x_test, y_test)
     print(f"Test Loss: {loss:.4f}")
     print(f"Test Accuracy: {accuracy * 100:.2f}%")
-    predictions = model.predict(x_test[2810:2821])
-    print(predictions)
-    print(np.count_nonzero(predictions > 0.5) / len(predictions))
-    with open("results.txt", 'a') as file:
-        file.write(f"zero rate:{zero_rate}; "+f"one rate:{one_rate}; "+f"loss:{loss}; "+f"accuracy:{accuracy}; "+f"predict:{np.count_nonzero(predictions > 0.5) / len(predictions)}\n")
+    # predictions = model.predict(x_test[2810:2821])
+    # print(predictions)
+    # print(np.count_nonzero(predictions > 0.5) / len(predictions))
+    # with open("results.txt", 'a') as file:
+    #     file.write(f"zero rate:{zero_rate}; "+f"one rate:{one_rate}; "+f"loss:{loss}; "+f"accuracy:{accuracy}; "+f"predict:{np.count_nonzero(predictions > 0.5) / len(predictions)}\n")
     model.save('my_model.h5')
 
 if __name__ == '__main__':
@@ -205,7 +232,7 @@ if __name__ == '__main__':
     #     zero_rate=i
     #     one_rate=0.8
     #     DNN(x_train, y_train, x_test, y_test)
-    #DNN(x_train, y_train, x_test, y_test)
+    DNN(x_train, y_train, x_test, y_test)
     # model=load_model('my_model.h5')
     # predictions=model.predict(x_test)
     # print(np.count_nonzero(predictions > 0.28505) / len(predictions))
