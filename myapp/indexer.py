@@ -31,8 +31,8 @@ class Indexer:
         # print(data)
         for row in data:
             doc={}
-            doc.setdefault('title',row[1])
-            doc.setdefault('url',row[0])
+            doc.setdefault('title',row[0])
+            doc.setdefault('url',row[1])
             self.doc_list.append(doc)
         self.index()
 
