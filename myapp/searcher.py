@@ -90,10 +90,16 @@ class Search:
         for doc in self.index.doc_list:
             BM25[doc['title']]=self.compute_bm25_score(queries,doc)
 
-        tmp= {title: score for title, score in BM25.items() if score != 0}
-        BM25=tmp                           #将无关的新闻全部删除
+        tmp= {title: score for title, score in BM25.items() if score != 0}         #将无关的新闻全部删除
+
+        BM25=tmp
+
 
         temp = list(zip(*BM25.items()))
+
+        if(len(temp)==0):
+            return []
+
         list_title, list_score = list(temp[0]), list(temp[1])
         print(list_score)
         scores = self.model.predict(numpy.array(self.toVector_test(self.divideWords(list_title))))
