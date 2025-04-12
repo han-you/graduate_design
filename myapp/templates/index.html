@@ -11,7 +11,10 @@
         <h1>新闻搜索引擎</h1>
         <form action="/search" method="post">
             <input type="text" name="query" placeholder="输入搜索内容..." required>
-            <button type="submit">搜索</button>
+            <div class="search-buttons">
+            <button type="submit" name="search_type" value="bm25">普通搜索</button>
+             <button type="submit" name="search_type" value="combined">综合搜索</button>
+                </div>
         </form>
     </div>
 </body>

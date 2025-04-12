@@ -10,7 +10,10 @@
     <div class="container">
           <form action="/search" method="post">
             <input type="text" name="query" placeholder="输入搜索内容..." required>
-            <button type="submit">搜索</button>
+              <div class="search-buttons">
+              <button type="submit" name="search_type" value="bm25">普通搜索</button>
+             <button type="submit" name="search_type" value="combined">综合搜索</button>
+                  </div>
         </form>
         <h1>搜索结果 - "{{ query }}"</h1>
         <br>

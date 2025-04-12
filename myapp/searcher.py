@@ -1,6 +1,8 @@
 import csv
 import math
 import operator
+import time
+
 import jieba
 import joblib
 import numpy
@@ -33,7 +35,7 @@ class Search:
         ans=[]
         for title in titles:
             words = jieba.cut(title)
-            print(words)
+            # print(words)
             filtered_words = self.remove_stopwords(words)
             ans.append(" ".join(filtered_words))  # 输出去除停用词后的分词结果
         return ans
@@ -44,25 +46,28 @@ class Search:
         x_tfidf = self.loaded_vectorizer.transform(wordvectorlist).toarray()  # 只转换
         return x_tfidf
 
-    def search(self,query):  #TF-IDF
-        term_list=[]
-        query=query.split()
-        for item in query:
+    def search(self,query):  #BM25
+        start_time = time.time()
+        queries = query.split()
+        term_list = []
+        for item in queries:
             term_list.extend(jieba.cut_for_search(item))
-        # print(term_list)
-        tf_idf={}
-        for item in term_list:
-            # print(self.index.inverted[item])
-            if item in self.index.inverted:
-                for doc_id,fre in self.index.inverted[item].items():
-                    print(doc_id)
-                    if doc_id in tf_idf:
-                        tf_idf[doc_id]+=(1+math.log10(fre))*self.index.idf[item]
-                    else:
-                        tf_idf[doc_id]=(1+math.log10(fre))*self.index.idf[item]
 
-        sorted_doc=sorted(tf_idf.items(),key=operator.itemgetter(1),reverse=True)
-        res=[self.index.id_doc[doc_id] for doc_id,score in sorted_doc]
+        BM25 = {}
+        for doc in self.index.doc_list:
+            BM25[doc['title']] = self.compute_bm25_score(term_list, doc)
+
+        # 过滤零分文档并按BM25分数排序
+        sorted_doc = sorted(
+            [(title, score) for title, score in BM25.items() if score != 0],
+            key=lambda x: x[1],
+            reverse=True
+        )[:200]  # 直接取前200个结果
+        print(sorted_doc)
+        res = [self.index.id_doc[doc_id] for doc_id, score in sorted_doc]
+
+        end_time = time.time()
+        print(end_time-start_time)
         print('search finish')
         return res
 
@@ -84,14 +89,18 @@ class Search:
         return score
 
     def search2(self,query):  #BM25
+        start_time=time.time()
         queries = query.split()
+        term_list=[]
+        for item in queries:
+            term_list.extend(jieba.cut_for_search(item))
         BM25={}
-
+        # print(term_list)
         for doc in self.index.doc_list:
-            BM25[doc['title']]=self.compute_bm25_score(queries,doc)
+            BM25[doc['title']]=self.compute_bm25_score(term_list,doc)
 
         tmp= {title: score for title, score in BM25.items() if score != 0}         #将无关的新闻全部删除
-
+        tmp = dict(sorted(tmp.items(), key=lambda item: item[1], reverse=True)[:200])
         BM25=tmp
 
 
@@ -101,7 +110,7 @@ class Search:
             return []
 
         list_title, list_score = list(temp[0]), list(temp[1])
-        print(list_score)
+        # print(list_score)
         scores = self.model.predict(numpy.array(self.toVector_test(self.divideWords(list_title))))
         # print(scores)
         min_score = min(list_score)
@@ -114,7 +123,7 @@ class Search:
                 list_score[i]=1.0
 
         for i in range(0, len(list_score)):
-            print(scores[i][0]*self.coefficient+(1-self.coefficient)*list_score[i])
+            # print(scores[i][0]*self.coefficient+(1-self.coefficient)*list_score[i])
             BM25[list_title[i]]=scores[i][0]*self.coefficient+(1-self.coefficient)*list_score[i]
 
 
@@ -123,10 +132,76 @@ class Search:
         res=[self.index.id_doc[doc_id] for doc_id,score in sorted_doc if score!=0]
         # for item in res:
         #     print(BM25[item['title']])
+        end_time=time.time()
+        print(end_time-start_time)
         print('search finish')
         return res
 
+    def search3(self, query):  # BM25
+        start_time = time.time()
+        queries = query.split()
+        term_list = []
+        for item in queries:
+            term_list.extend(jieba.cut_for_search(item))
+        BM25 = {}
 
+        # 计算原始BM25分数
+        for doc in self.index.doc_list:
+            BM25[doc['title']] = self.compute_bm25_score(term_list, doc)
+
+        # 过滤并排序
+        tmp = {title: score for title, score in BM25.items() if score != 0}
+        tmp = dict(sorted(tmp.items(), key=lambda item: item[1], reverse=True)[:200])
+        BM25 = tmp
+
+        temp = list(zip(*BM25.items()))
+        if (len(temp) == 0):
+            return []
+
+        list_title, list_score = list(temp[0]), list(temp[1])
+
+        # 模型预测
+        scores = self.model.predict(numpy.array(self.toVector_test(self.divideWords(list_title))))
+
+        # 归一化处理
+        min_score = min(list_score)
+        max_score = max(list_score)
+        if max_score > min_score:
+            list_score = [(s - min_score) / (max_score - min_score) for s in list_score]
+        else:
+            list_score = [1.0 for _ in list_score]
+
+        # 计算最终分数
+        final_scores = {}
+        for i in range(len(list_score)):
+            title = list_title[i]
+            bm25_score = list_score[i]
+            model_score = scores[i][0]
+            final_score = model_score * self.coefficient + (1 - self.coefficient) * bm25_score
+            final_scores[title] = {
+                'final_score': final_score,
+                'bm25_score': bm25_score,
+                'model_score': model_score
+            }
+            BM25[title] = final_score
+
+        # 打印详细分数信息
+        print("\n=== 搜索结果分数详情 ===")
+        print(f"系数设置: 模型权重={self.coefficient}, BM25权重={1 - self.coefficient}")
+        print(f"{'排名':<5}{'标题':<50}{'最终分数':<15}{'BM25分数':<15}{'模型分数':<15}")
+
+        sorted_doc = sorted(BM25.items(), key=operator.itemgetter(1), reverse=True)
+        for rank, (doc_id, score) in enumerate(sorted_doc, 1):
+            detail = final_scores[doc_id]
+            print(
+                f"{rank:<5}{doc_id[:50]:<50}{score:<15.4f}{detail['bm25_score']:<15.4f}{detail['model_score']:<15.4f}")
+
+        # 返回结果
+        res = [self.index.id_doc[doc_id] for doc_id, score in sorted_doc if score != 0]
+        end_time = time.time()
+        print(f"\n总耗时: {end_time - start_time:.4f}秒")
+        print('search finish')
+        return res
 
 
 
