@@ -6,6 +6,7 @@ import urllib.request,urllib.error
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 import mysql.connector
+
 totalpage=45
 
 

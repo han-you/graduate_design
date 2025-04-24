@@ -41,6 +41,7 @@ def saveData2DB(urls,texts):
         cursor.execute('insert into news (title,url) values (%s,%s)',(title,url))
 
     conn.commit()
+
     cursor.close()
     conn.close()
 
@@ -66,13 +67,14 @@ def getData(baseurl,driver):
             print(a.text)
         sleep(3)
     return urls,texts
+
 def main(driver):
     delete_file()
     baseurl="https://news.sina.com.cn/roll/#pageid=153&lid=2509&k=&num=50&"
     # # 1.爬取网页
     [urls,texts] = getData(baseurl,driver)
     saveData2DB(urls,texts)
-
+    saveData(urls,texts)
 
 if __name__=='__main__':
     web_driver=webdriver.Edge()

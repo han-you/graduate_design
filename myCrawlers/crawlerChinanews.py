@@ -5,6 +5,7 @@ import time
 import urllib.request,urllib.error
 
 import mysql.connector
+import pymysql
 from bs4 import BeautifulSoup
 
 totalpage=10
@@ -27,11 +28,12 @@ def saveData(urls,texts):
             writer.writerow([url, text])  # 将每一对 title 和 label 写入一行
 
 def saveData2DB(urls,texts):
-    conn=mysql.connector.connect(
+    conn=pymysql.connect(
         host="123.57.251.203",
         user='hanyou',
         password='Chenyu&20021122',
-        database='news'
+        database='news',
+        port=3306
     )
     cursor = conn.cursor()
     for url,title in zip(urls,texts):

@@ -55,7 +55,7 @@ class Indexer:
                     self.inverted[item]={key:1}
 
         for item in self.inverted:
-            self.idf[item]=math.log10(self.doc_num/len(self.inverted[item]))
+            self.idf[item]=math.log10((self.doc_num-len(self.inverted[item])+0.5)/(len(self.inverted[item])+0.5))
 
         print("inverted terms:%d" % len(self.inverted))
         print("index done")

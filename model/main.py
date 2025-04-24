@@ -175,7 +175,7 @@ def DNN(x_train,y_train,x_test,y_test):
 
     model.add(Dense(1, activation='sigmoid'))  # 输出层（sigmoid激活函数用于二分类）
 
-    # 编译模型
+    # 编译模型 
     model.compile(optimizer=Adam(), loss='binary_crossentropy', metrics=['accuracy'])
 
     # 打印模型架构
@@ -189,13 +189,13 @@ def DNN(x_train,y_train,x_test,y_test):
     # print(y_train.dtype)  # 检查 y_train 的数据类型
     # print(y_train)
     # 假设 y_train 是标签
-    class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y_train), y=y_train)
+    # class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y_train), y=y_train)
     history = model.fit(x_train, y_train,
                         shuffle=True,
                         epochs=20,  # 可以根据需要调整
                         batch_size=32,  # 可以根据需要调整
                         validation_data=(x_test, y_test),  # 验证集
-                        class_weight={0:class_weights[0]*zero_rate,1:class_weights[1]*one_rate},
+                        # class_weight={0:class_weights[0]*zero_rate,1:class_weights[1]*one_rate},
                         callbacks=[early_stopping])  # 使用早停法
 
     # 评估模型
